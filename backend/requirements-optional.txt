@@ -1,0 +1,15 @@
+# ─────────────────────────────────────────────────────────────
+# 可选依赖 —— 不装也能启动，只影响对应功能模块
+#
+# 安装：pip install -r requirements-optional.txt
+#
+# 这些包在代码里都是「函数内延迟 import」，
+# 缺了只会让那条能力路径报 ImportError，不影响主服务。
+# ─────────────────────────────────────────────────────────────
+
+PyPDF2>=3.0              # utils/text_extractor.py —— PDF 文本抽取
+python-docx>=1.1         # utils/text_extractor.py —— Word 文本抽取
+faiss-cpu>=1.9           # runtime/context_engine/retrieval/vector_store.py —— 向量检索
+kubernetes>=31           # runtime/k8s_scheduler/k8s_client.py —— K8s 调度
+playwright>=1.49         # runtime/sandbox/browser_sandbox.py —— 浏览器沙箱
+                         #   装完还需执行：playwright install chromium
