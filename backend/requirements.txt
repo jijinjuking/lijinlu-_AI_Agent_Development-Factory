@@ -1,0 +1,28 @@
+# Core
+fastapi>=0.115,<0.120
+uvicorn[standard]>=0.32
+pydantic>=2.10
+pydantic-settings>=2.7
+
+# Database
+sqlalchemy[asyncio]>=2.0
+asyncpg>=0.30
+aiosqlite>=0.20
+alembic>=1.14
+
+# Redis (Phase 1 optional)
+redis>=5.2
+
+# LangGraph — Workflow orchestration (W7+)
+langgraph>=0.4,<0.6
+langchain-core>=0.3,<0.4
+langchain>=0.3,<0.4
+langchain-openai>=0.3,<0.4
+
+# CORS
+python-multipart>=0.0.18
+
+# Dev
+httpx>=0.28
+pytest>=8.3
+pytest-asyncio>=0.24

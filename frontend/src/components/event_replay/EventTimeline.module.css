@@ -1,0 +1,119 @@
+/* ============================================================
+   EventTimeline.module.css
+   ============================================================ */
+
+.timelineContainer {
+  overflow-y: auto;
+  height: 100%;
+  padding: 8px 0;
+}
+
+.emptyPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #8c8c8c;
+  font-size: 13px;
+  text-align: center;
+  padding: 16px;
+}
+
+/* ── 单条事件 ── */
+.timelineItem {
+  display: flex;
+  gap: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+  position: relative;
+  margin-bottom: 2px;
+}
+
+.timelineItem:hover {
+  background: rgba(22, 119, 255, 0.06);
+}
+
+.activeItem {
+  background: rgba(22, 119, 255, 0.12) !important;
+  border-left: 3px solid #1677ff;
+}
+
+.pastItem {
+  opacity: 0.55;
+}
+
+/* ── 时间线轨道 ── */
+.trackLine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 14px;
+  padding-top: 4px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+.connector {
+  width: 2px;
+  flex: 1;
+  min-height: 12px;
+  background: #e0e0e0;
+  margin-top: 3px;
+}
+
+/* ── 内容 ── */
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.eventTypeLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #262626;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: #8c8c8c;
+  font-family: monospace;
+}
+
+.producer {
+  font-size: 11px;
+  color: #aaa;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+
+.index {
+  font-size: 10px;
+  color: #bfbfbf;
+  margin-left: auto;
+}

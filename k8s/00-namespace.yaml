@@ -1,0 +1,8 @@
+# AI Runtime OS — Kubernetes Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-runtime-os
+  labels:
+    app: ai-runtime-os
+    environment: production

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket 测试</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+    button { padding: 8px 16px; margin: 5px; background: #0e639c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:disabled { background: #555; }
+    #log { background: #252526; padding: 10px; border-radius: 4px; height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; }
+    .ok { color: #4ec9b0; }
+    .err { color: #f48771; }
+    .info { color: #9cdcfe; }
+    .url-input { width: 400px; padding: 5px; background: #3c3c3c; color: #d4d4d4; border: 1px solid #555; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h2>WebSocket 测试工具</h2>
+  <div>
+    <label>WebSocket URL: <input type="text" id="wsUrl" class="url-input" value="ws://127.0.0.1:8002/api/v1/ws" /></label><br><br>
+    <label>Token: <input type="text" id="token" style="width:400px" /></label><br><br>
+    <button onclick="connect()">连接</button>
+    <button onclick="disconnect()">断开</button>
+    <button onclick="sendPing()">发送 Ping</button>
+    <button onclick="testMainWs()">测试主应用 /ws (8002)</button>
+    <button onclick="testMainWsTest()">测试主应用 /ws-test (8002)</button>
+  </div>
+  <div id="status" style="margin:10px 0">未连接</div>
+  <div id="log"></div>
+
+  <script>
+    let ws = null;
+
+    function log(msg, cls = '') {
+      const el = document.getElementById('log');
+      const line = document.createElement('div');
+      line.className = cls;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      el.appendChild(line);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function setStatus(msg, color = '#d4d4d4') {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.style.color = color;
+    }
+
+    function connect() {
+      const url = document.getElementById('wsUrl').value;
+      log(`正在连接: ${url}`, 'info');
+
+      try {
+        ws = new WebSocket(url);
+
+        ws.onopen = () => {
+          log('✅ WebSocket 连接成功！', 'ok');
+          setStatus('已连接', '#4ec9b0');
+        };
+
+        ws.onmessage = (event) => {
+          log(`收到消息: ${event.data}`, 'info');
+        };
+
+        ws.onclose = (event) => {
+          log(`连接关闭: code=${event.code}, reason=${event.reason}`, 'err');
+          setStatus('已断开', '#f48771');
+          ws = null;
+        };
+
+        ws.onerror = (error) => {
+          log(`错误: ${error}`, 'err');
+        };
+      } catch (e) {
+        log(`创建连接失败: ${e}`, 'err');
+      }
+    }
+
+    function disconnect() {
+      if (ws) {
+        ws.close();
+      }
+    }
+
+    function sendPing() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        log('无法发送：未连接', 'err');
+        return;
+      }
+      const msg = JSON.stringify({ type: 'ping', timestamp: Date.now() });
+      ws.send(msg);
+      log(`已发送: ${msg}`, 'info');
+    }
+
+    function testMainWs() {
+      const token = localStorage.getItem('access_token');
+      const url = `ws://127.0.0.1:8002/api/v1/ws?token=${token || ''}`;
+      document.getElementById('wsUrl').value = url;
+      log('已切换到主应用 /ws (8002)', 'info');
+    }
+
+    function testMainWsTest() {
+      document.getElementById('wsUrl').value = 'ws://127.0.0.1:8002/api/v1/ws-test';
+      log('已切换到主应用 /ws-test (8002)', 'info');
+    }
+
+    // 页面加载时自动填入 token 并连接
+    window.onload = () => {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        document.getElementById('token').value = token.substring(0, 50) + '...';
+        log('已自动填入 token（截断显示）', 'info');
+        // 自动构建带 token 的 URL 并连接
+        const url = `ws://127.0.0.1:8002/api/v1/ws?token=${token}`;
+        document.getElementById('wsUrl').value = url;
+        log('正在自动连接...', 'info');
+        connect();
+      } else {
+        log('⚠️ 未找到 token，请先登录（访问 /login 页面）', 'info');
+      }
+    };
+  </script>
+</body>
+</html>

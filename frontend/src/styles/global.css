@@ -1,0 +1,56 @@
+/* ============================================================
+   AI Agent OS — 全局样式
+   ============================================================ */
+
+/* 重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* 全局过渡 */
+.ant-layout,
+.ant-layout-sider,
+.ant-layout-header,
+.ant-card,
+.ant-menu {
+  transition: all 0.3s ease;
+}
+
+/* Kanban 拖拽 */
+.kanban-dragging {
+  opacity: 0.5;
+  transform: rotate(3deg);
+}
+
+/* Trace 节点选中高亮 */
+.trace-node-selected {
+  outline: 2px solid #1677ff;
+  outline-offset: -2px;
+}
