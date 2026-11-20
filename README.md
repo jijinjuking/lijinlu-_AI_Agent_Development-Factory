@@ -12,7 +12,7 @@
 |---|---|
 | 后端规模 | 227 个 Python 文件，306 个接口（255 条路径 / 28 个路由模块），23 张数据表 |
 | 前端规模 | 107 个 TS/TSX 文件，28 个页面，`tsc --noEmit` 与 `npm run build` 通过 |
-| 测试 | 29 个测试文件、1545 个用例，`pytest` 全量可跑 |
+| 测试 | 29 个测试文件，**全新虚拟环境实测 1542 项全部通过**（73 秒） |
 | 软件骨架 | ✅ 完整：认证、任务、Agent、流水线、产物、成本、评估、多租户、K8s 调度都有 |
 | 端到端出码 | ⚠️ **尚未打通**，详见 [已知断链](#已知断链) |
 | 计费能力 | ✅ LLM 调用记账、成本看板（`llm_calls` 表 + `/costs` 接口）已可用 |
@@ -96,14 +96,23 @@ ai-agent-os/
 │   │   ├── runtime/           # 运行时能力（24 个子模块）
 │   │   ├── core/              # EventBus、SSE、安全、数据库引擎
 │   │   └── prompts/           # Agent 提示词模板
-│   ├── tests/                 # 29 个测试文件 / 1545 用例
-│   └── requirements.txt
+│   ├── tests/                 # 29 个测试文件 / 1542 项实测通过
+│   ├── requirements.txt           # 依赖（版本下限）
+│   ├── requirements.lock.txt      # 依赖（精确锁定，可复现）
+│   ├── requirements-optional.txt  # 可选能力依赖
+│   ├── .env.example               # 全部配置项说明
+│   └── docker-compose.yml         # postgres + redis
 ├── frontend/
-│   └── src/
-│       ├── pages/             # 28 个页面
-│       ├── api/               # 按模块划分的请求函数
-│       ├── stores/            # zustand
-│       └── components/
+│   ├── src/
+│   │   ├── pages/             # 28 个页面
+│   │   ├── api/               # 按模块划分的请求函数
+│   │   ├── stores/            # zustand
+│   │   └── components/
+│   ├── package-lock.json      # 前端精确版本锁定
+│   └── .nvmrc                 # Node 22
+├── scripts/
+│   ├── setup.ps1              # Windows 一键环境准备
+│   └── setup.sh               # macOS / Linux 一键环境准备
 ├── docs/                      # 架构设计、开发计划、修复报告（14 篇）
 ├── k8s/                       # 部署清单
 └── DEVELOPMENT.md             # 开发运行手册（更细的操作步骤）
@@ -111,59 +120,130 @@ ai-agent-os/
 
 ---
 
-## 快速开始
+## 环境准备
 
-### 1. 后端
+仓库里**只放代码，不放环境** —— `node_modules`、`.venv`、`*.db`、`.env` 全在 `.gitignore` 里。
+原因很简单：`node_modules` 十几万个文件、venv 里全是跟平台绑定的二进制（Windows 的 `.pyd` 在 Linux 上没用），
+提交它们只会让仓库膨胀到几百 MB 且换机器仍然跑不起来。
+
+可复现性靠的是三样东西，都已经在库里：
+
+| 文件 | 作用 |
+|---|---|
+| `frontend/package-lock.json` | 锁定前端每个包的精确版本 |
+| `backend/requirements.lock.txt` | 锁定后端 77 个包的精确版本（由实测可用的 `.venv` 生成） |
+| `backend/.env.example` | 列出全部 15 个配置项，照着填即可 |
+
+> 这套依赖清单已经在**全新虚拟环境里从零装过一遍**并跑通全部 1542 项测试（Python 3.13，2026-11-20 验证）。
+> 之前 `requirements.txt` 漏掉了 `PyJWT` 和 `bcrypt`（都是模块顶层 import），照旧清单装完服务根本起不来，已修正。
+
+### 方式一：一键脚本（推荐）
 
 ```bash
-cd backend
-python -m venv venv
-venv\Scripts\python.exe -m pip install -r requirements.txt      # Windows
-# source venv/bin/activate && pip install -r requirements.txt    # macOS / Linux
+# Windows
+pwsh -File scripts\setup.ps1
+
+# macOS / Linux
+bash scripts/setup.sh
 ```
 
-### 2. 配置环境变量
+脚本会依次完成：检查 Python/Node 版本 → 建 `backend/.venv` → 装依赖 → 从 `.env.example` 生成 `.env`
+→ `npm install`，然后打印后续启动命令。可重复执行，已存在的东西不会覆盖。
+
+想 100% 复现开发机上的版本：`bash scripts/setup.sh --locked`（Windows 加 `-Locked`）。
+
+### 方式二：手动
 
 ```bash
+# 后端
 cd backend
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt     # Windows
+# .venv/bin/python -m pip install -r requirements.txt           # macOS / Linux
 cp .env.example .env
+
+# 前端
+cd ../frontend
+npm install
 ```
 
-`.env` 必须自己填的键：
+### 方式三：只要基础设施（可选）
+
+不装 SQLite 以外的东西也能跑。需要 PostgreSQL + pgvector 或 Redis 时：
+
+```bash
+cd backend
+docker compose up -d          # postgres:5432 / redis:6379
+```
+
+### 可选能力依赖
+
+下面这些是「函数内延迟 import」的，不装也能启动，只影响对应功能：
+
+```bash
+cd backend
+.venv\Scripts\python.exe -m pip install -r requirements-optional.txt
+```
+
+PDF/Word 文本抽取（`PyPDF2`、`python-docx`）、向量检索（`faiss-cpu`）、
+K8s 调度（`kubernetes`）、浏览器沙箱（`playwright`）。
+
+### 环境变量
+
+`.env` 必填的四个键（其余有合理默认值）：
 
 | 变量 | 说明 | 示例 |
 |---|---|---|
 | `OPENAI_API_KEY` | LLM 密钥（DeepSeek 或其他 OpenAI 兼容服务） | `sk-...` |
 | `OPENAI_BASE_URL` | 兼容接口地址 | `https://api.deepseek.com/v1` |
-| `SECRET_KEY` | JWT 签名密钥，**生产必须换成随机强密钥** | `openssl rand -hex 32` |
-| `DATABASE_URL` | 数据库连接串，默认 SQLite | `sqlite+aiosqlite:///./ai_runtime.db` |
+| `SECRET_KEY` | JWT 签名密钥，**生产必须换成随机强密钥** | `python -c "import secrets;print(secrets.token_hex(32))"` |
+| `DATABASE_URL` | 数据库连接串，默认 SQLite 无需安装 | `sqlite+aiosqlite:///./ai_runtime.db` |
 
-> `.env` 已在 `.gitignore` 里，永远不会被提交。
+没有可用 key 时也能验证链路：`DEFAULT_LLM_MODEL=mock:test`，会返回固定假数据、不产生费用。
 
-### 3. 初始化数据库 + 启动
+**三个容易踩的坑**：
+
+1. `.env` 是相对「进程工作目录」读的（`config.py` 里 `env_file=".env"`），所以**必须在 `backend/` 目录下启动** uvicorn，否则配置不生效、表现为「明明填了 key 却说没配」。
+2. **表是启动时自动建的**，前提是 `DEBUG=true`（`main.py:194` 的 `if settings.debug: await init_db()`）。首次运行别把 DEBUG 改成 false，否则连表都没有。
+3. `app/seed.py` 没有去重保护，**重复执行会因唯一约束报错**，灌一次就够。
+
+---
+
+## 快速开始
+
+### 1. 灌种子数据（只跑一次）
 
 ```bash
 cd backend
-venv\Scripts\python.exe -m app.main                          # 建表
-venv\Scripts\python.exe seed.py                              # 种子数据（只跑一次，无去重保护）
-venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8002 --reload
+.venv\Scripts\python.exe -m app.seed          # Windows
+# .venv/bin/python -m app.seed                # macOS / Linux
+```
+
+写入默认角色权限、预设 Agent 等基础数据。注意是 `-m app.seed`，不是 `python seed.py`
+（脚本在 `backend/app/seed.py`，不在 `backend/` 根下）。
+
+### 2. 启动后端
+
+```bash
+cd backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8002 --reload
 ```
 
 - Swagger UI：http://127.0.0.1:8002/docs
 - OpenAPI：http://127.0.0.1:8002/openapi.json
+- 首次启动会自动建表（需 `DEBUG=true`）
 
-### 4. 前端
+### 3. 启动前端
 
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
 - 控制台：http://localhost:5176
 - `/api` 与 `/ws` 由 Vite 代理到 `127.0.0.1:8002`，无需处理跨域
 
-### 5. 造一个账号
+### 4. 造一个账号
 
 ```bash
 curl -X POST http://127.0.0.1:8002/api/v1/auth/register \
@@ -256,12 +336,16 @@ curl -X POST http://127.0.0.1:8002/api/v1/auth/register \
 ## 开发
 
 ```bash
-# 后端测试（29 个文件 / 1545 用例）
-cd backend && venv\Scripts\python.exe -m pytest -q
+# 后端测试（29 个文件，实测 1542 项通过）
+cd backend && .venv\Scripts\python.exe -m pytest -q
 
 # 前端类型检查 + 构建
 cd frontend && npx tsc --noEmit && npm run build
 ```
+
+`backend/pytest.ini` 已把收集范围限定在 `tests/`。`backend/` 根下的
+`test_auth.py` / `test_ws_app.py` / `test_ws_minimal.py` 是「需要先手动起后端」的联调脚本，
+模块级就会发 HTTP 请求，**不要**用 pytest 直接跑它们，否则 collection 阶段直接 404 中断。
 
 更细的操作流程、新增功能的三步走示例见 [DEVELOPMENT.md](DEVELOPMENT.md)；
 架构设计与历次修复记录见 [docs/](docs/)。

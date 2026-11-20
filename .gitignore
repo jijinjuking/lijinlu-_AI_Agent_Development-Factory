@@ -20,8 +20,8 @@ wheels/
 MANIFEST
 
 # 虚拟环境
-.venv/
-venv/
+.venv*/
+venv*/
 ENV/
 env/
 

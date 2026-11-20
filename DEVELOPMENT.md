@@ -22,9 +22,14 @@
 
 ```bash
 cd backend
-python -m venv venv        # 创建虚拟环境
-venv\Scripts\python.exe -m pip install -r requirements.txt
+python -m venv .venv                                   # Python 3.11+，本项目实测 3.13
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+# 想 100% 复现开发机的版本：改用 requirements.lock.txt
 ```
+
+> 装完先做两件事：`cp .env.example .env` 并填好 `OPENAI_API_KEY` / `OPENAI_BASE_URL`；
+> 想省事可直接跑一键脚本 —— Windows `scripts\setup.ps1`，macOS/Linux `bash scripts/setup.sh`，
+> 它会自动完成建 venv、装依赖、生成 .env、npm install 全套。
 
 ### 前端
 
@@ -43,19 +48,19 @@ pnpm install
 
 ```bash
 cd backend
-# 方式一：自动建表（SQLAlchemy create_all）
-venv\Scripts\python.exe -m app.main
-
-# 方式二：手动写入种子数据（角色、权限、默认用户等）
-venv\Scripts\python.exe seed.py
+# 建表：不需要单独执行 —— uvicorn 启动时 lifespan 会自动 create_all
+#       （前提是 .env 里 DEBUG=true，见 app/main.py:194）
+# 种子数据：角色权限、预设 Agent 等
+.venv\Scripts\python.exe -m app.seed
 ```
 
-> `seed.py` 会写入：默认管理员用户、5 个预设 Agent 角色权限、示例数据。
-> **注意**：`seed.py` 没有去重保护，重复运行会报唯一约束错误。建议只运行一次。
+> 注意是 `-m app.seed`，脚本实际在 `backend/app/seed.py`（**不是** `backend/seed.py`）。
+> 它会写入：默认角色权限、5 个预设 Agent、示例数据。
+> **注意**：它没有去重保护，重复运行会报唯一约束错误。建议只运行一次。
 
 ### 创建初始管理员账号
 
-如果 `seed.py` 没有创建用户，手动注册一个：
+如果种子数据里没有可登录用户，手动注册一个：
 
 ```bash
 curl -X POST http://127.0.0.1:8002/api/v1/auth/register \
@@ -72,7 +77,7 @@ curl -X POST http://127.0.0.1:8002/api/v1/auth/register \
 ```bash
 cd backend
 # --reload 支持热重载
-venv\Scripts\python.exe -m uvicorn app.main:app \
+.venv\Scripts\python.exe -m uvicorn app.main:app \
   --host 127.0.0.1 --port 8002 --reload
 ```
 
@@ -233,7 +238,7 @@ import NotificationsPage from './pages/NotificationsPage';
 | 前端生产构建 | `cd frontend && npm run build` |
 | 后端 API 文档 | 启动后访问 `/docs` |
 | 查看 SQLite 数据 | `sqlite3 ai_runtime.db ".tables"` |
-| 重置数据库 | 删除 `ai_runtime.db`，重新运行 `seed.py` |
+| 重置数据库 | 删掉 `backend/ai_runtime.db`，重启后端（自动建表），再执行 `python -m app.seed` |
 | 查看前端页面列表 | 查看 `frontend/src/App.tsx` 中的路由配置 |
 
 ---
@@ -260,7 +265,7 @@ taskkill /F /PID <PID>
 
 ```bash
 del backend\ai_runtime.db
-cd backend && venv\Scripts\python.exe -m app.main
+cd backend && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8002 --reload
 ```
 
 > 生产环境请使用 Alembic 迁移（当前项目未配置）。
@@ -394,13 +399,13 @@ cd frontend && npm run build
 
 ```bash
 # 1. 启动后端
-cd backend && venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8002 --reload
+cd backend && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8002 --reload
 
 # 2. 访问 API 文档
 # http://127.0.0.1:8002/docs
 
 # 3. 运行测试（如有）
-cd backend && venv\Scripts\python.exe -m pytest
+cd backend && .venv\Scripts\python.exe -m pytest
 ```
 
 ---
